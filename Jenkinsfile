@@ -40,5 +40,17 @@ pipeline {
                 sh 'ls -lh target/'
             }
         }
+
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('SonarQube') {
+                    sh '''
+                        mvn -B org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
+                            -Dsonar.organization=uday733 \
+                            -Dsonar.projectKey=Uday733_spring-petclinic
+                    '''
+                }
+            }
+        }
     }
 }
