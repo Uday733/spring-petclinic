@@ -1,0 +1,51 @@
+pipeline {
+    agent any
+
+    tools {
+        maven 'Maven'
+    }
+
+    options {
+        skipDefaultCheckout()
+    }
+
+    environment {
+        AWS_REGION = 'eu-west-2'
+        ECR_REGISTRY = '487450071540.dkr.ecr.eu-west-2.amazonaws.com'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build and Test') {
+            steps {
+                sh 'mvn -B clean package'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                sh 'docker build -t "$ECR_REGISTRY/petclinic:day41-$BUILD_NUMBER" .'
+            }
+        }
+
+        stage('Push to ECR') {
+            steps {
+                sh '''#!/bin/bash
+set -euo pipefail
+export DOCKER_CONFIG="$(mktemp -d)"
+trap 'rm -rf "$DOCKER_CONFIG"' EXIT
+
+/usr/local/bin/aws ecr get-login-password --region "$AWS_REGION" |
+    docker login --username AWS --password-stdin "$ECR_REGISTRY"
+
+docker push "$ECR_REGISTRY/petclinic:day41-$BUILD_NUMBER"
+'''
+            }
+        }
+    }
+}
